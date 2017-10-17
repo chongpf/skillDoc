@@ -1,0 +1,170 @@
+-Xmx512M -Xms512M -Xmn128M -Xss1M -XX:NewRatio=3 -XX:SurvivorRatio=2 -XX:PermSize=64M 
+-XX:MaxPermSize=64M -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=4 
+-XX:CMSInitiatingOccupancyFraction=60 -XX:CMSFullGCsBeforeCompaction=4 -XX:+PrintGC -XX:+PrintGCDetails 
+-javaagent:D:\work\chongpengfei\src\outlib\sizeOf.jar 
+-Xloggc:D:\work\chongpengfei\workspace\skillDoc\JVM\Capter3_parameter\jvmgc.log
+
+简单记录JVM存储空间的几大模块的常用名称；使用哪些参数对各个模块进行尺寸设置及垃圾回收；最后举例子说明下参数配置后的GC的效果。
+
+第一步，首先对于存储的几大模块进行一下简单描述：
+1）JVM的内存分为两块：A.堆heap  B.非堆non-heap：即堆以外的栈、方法区、常量池、寄存器空间（称为PermanateGeneration持久代）
+2）然后堆heap分为YongGeneration年轻代,TenuringGeneration年老代。
+3) YongGeneration又分为Eden区，Survivor区（Survivor有两个区）
+各个区域的作用，可以参看“JVM--心得概念”随笔里的记述内容。日常使用时，主要关注Heap这一最大的内存空间。持久代主要存储元数据和静态数据，不用过多的定制。
+
+第二步，针对空间分配和垃圾回收引入如下参数的设置（使用Eclipse时，可以通过exclipse.ini文件或者设定的JRE缺省参数设置。tomcat时catalina里可以设置。直接用JRE时，通过控制台命令进行设置。）
+主要参数：
+1）空间大小相关的设定：
+	-Xmx   该参数规定了JVM堆的最大内存空间。例子：-Xmx512M
+	-Xms   该参数规定了JVM堆的初始内存尺寸。例子：-Xmx512M
+	       当堆的使用>=堆空间当前空间的60%时，JVM会增大当前堆的内存空间，最大为-Xmx。
+		   当堆的使用<=堆空间当前空间的30%时，JVM会减少当前堆的内存空间，最小为-Xms。
+		   为了避免GC后频繁调整当前堆空间的大小，所以可以把-Xmx和-Xms设置为相同的值。
+    -Xmn   该参数规定了年轻代的空间。即Eden和两个Survivor的区域总空间。例子：-Xmn128M。官方推荐该尺寸设置为堆空间的3/8。
+	-Xss   该参数规定了单线程Java栈的大小。理论上该参数越小，可以使用的Java线程越多，实际情况线程不会无限多。例子：-Xss1M或者Xss128K
+	-XX:MaxPermSize 该参数规定了持久代的最大空间。例子：-XX:MaxPermSize=64M
+2）空间比率划分的设定：
+	-XX:NewRatio 该参数规定了年轻代和年老代的比率。当-XX:NewRatio=4时，代表的含义为 年轻代:年老代=1:4
+	-XX:SurvivorRatio 该参数规定了Servior和Eden的比率。当-XX:SurvivorRatio=4时，代表的含义为 Servier:Eden=2:4。
+					  因为Survivor有两个区域，所以这里是2:4。可以当成Survivor是双胞胎，打架一起上。
+3）GC有关的参数：
+	-XX:+UseParNewGC 声明了年轻代使用并行收集策略。（还有UseSerialGC串行GC策略，适合单线程程序，服务器应用很少使用）
+	-XX:+UseConcMarkSweepGC 声明了年老代使用并发收集策略（简称CMS,GC日志中经常出现该单词）。并发收集策略比较注重回收的效率，减少程序暂停的时间。
+	-XX:ParallelGCTheads 声明了并发回收时，参与工作的线程数量。一般和处理器的个数相等。例子：-XX:ParallelGCTheads=4
+    -XX:CMSInitiatingOccupancyFraction 声明了当年老代的使用率超过该比率时，对年老代进行GC。避免年老代空间不足引发FullGC。例子：-XX:CMSInitiatingOccupancyFraction=60
+	-XX:CMSFullGCsBeforeCompaction 声明了当发生了一定次数的FullGc后实施内存的碎片整理。比如当发生ParNew即年轻代的GC时，不一定是空余空间不足，
+	    可能由于内存的碎片导致连续的可用内存空间不足。实施碎片整理本身会占用性能，整理的频率需要按实际情况设定。例子 -XX:CMSFullGCsBeforeCompaction=4
+	说名：上述设置主要是面向并发回收策略中的常用参数。还有其他的策略参数（如并行回收策略）请参看官方文档。
+4）GC的信息查看
+    -XX:+PrintGC 声明了打印GC信息
+	-XX:+PrintGCDetails 声明了打印GC的详细信息
+	-Xloggc 声明了把GC的信息出力到指定文件中。例子：-Xloggc:D:\work\chongpf\workspace\skillDoc\JVM\Capter3_parameter\jvmgc.log
+
+第三步，实际应用测试一下。
+   1）配置：本例按eclipse举例。通过窗口->设定->Java->安装的JRE->选择目前的JRE,并按编辑按钮->默认的JVM参数里输入如下内容（填入时，不要换行）：
+            -Xmx512M -Xms512M -Xmn128M -Xss1M -XX:NewRatio=3 -XX:SurvivorRatio=2 -XX:PermSize=64M -XX:MaxPermSize=64M -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=4 -XX:CMSInitiatingOccupancyFraction=20 -XX:CMSFullGCsBeforeCompaction=4 -XX:+PrintGC -XX:+PrintGCDetails -javaagent:D:\work\chongpengfei\src\outlib\sizeOf.jar -Xloggc:D:\work\chongpengfei\workspace\skillDoc\JVM\Capter3_parameter\jvmgc.log
+	  
+	  另外，调试时为了方便查看对象的尺寸，工程里引入了SizeOf的jar包。并把该jar设置到了Jvm的启动参数中。
+	  下载路径：https://sourceforge.net/projects/sizeof/
+   
+   2）代码如下：
+-------------------------------------------------------------------------------
+package com.chong.studyparalell.jvm.heap;
+
+import java.util.Date;
+import net.sourceforge.sizeof.SizeOf;
+
+public class HeapDemo {
+
+	public static void main(String [] args){
+		HeapDemo demo = new HeapDemo();
+		demo.testJVMParamAndGC();
+	}
+
+	private void testJVMParamAndGC(){
+	
+		for(int i=0;i<1000;i++){
+
+			//每次生成一个4M的数组，测试Eden区域和Survivior区域，即：new generation
+			int[] temp = new int[1*1024*1024];
+			System.out.println(new Date().toString()+ " pintSize:" + SizeOf.humanReadable(SizeOf.deepSizeOf(temp)));
+
+			// 每循环100次，新建一个80M大小的数组引发CMS GC使用,即 tenuringGeneration
+			if(i%100==0 && i>0){
+				int[] intArr = new int[20*1024*1024];
+				System.out.println(new Date().toString()+ " pintSize:" + SizeOf.humanReadable(SizeOf.deepSizeOf(intArr)));
+			}
+		}
+
+		//最后测试一下FullGC
+		System.gc();
+		}
+}
+-------------------------------------------------------------------------------
+控制台的部分消息：
+Found big object: [I@20995753 size: 4.0000152587890625Mb
+Fri Oct 13 18:20:25 CST 2017 pintSize:4.0000152587890625Mb
+Found big object: [I@8947790 size: 4.0000152587890625Mb
+Fri Oct 13 18:20:25 CST 2017 pintSize:4.0000152587890625Mb
+Found big object: [I@28106261 size: 4.0000152587890625Mb
+Fri Oct 13 18:20:25 CST 2017 pintSize:4.0000152587890625Mb
+Found big object: [I@2651170 size: 4.0000152587890625Mb
+Fri Oct 13 18:20:25 CST 2017 pintSize:4.0000152587890625Mb
+Found big object: [I@31485310 size: 4.0000152587890625Mb
+Fri Oct 13 18:20:25 CST 2017 pintSize:4.0000152587890625Mb
+=>取到了1*1024*1024数组的大小为4M。  
+-------------------------------------------------------------------------------
+GClog的部分内容如下：	
+0.298: [GC 0.298: [ParNew: 65375K->711K(98304K), 0.0050990 secs] 65375K->711K(491520K), 0.0051687 secs] [Times: user=0.01 sys=0.00, real=0.01 secs] 
+0.316: [GC 0.316: [ParNew: 64144K->895K(98304K), 0.0045324 secs] 64144K->895K(491520K), 0.0045901 secs] [Times: user=0.05 sys=0.00, real=0.00 secs] 
+0.332: [GC 0.332: [ParNew: 63451K->917K(98304K), 0.0029476 secs] 63451K->917K(491520K), 0.0030049 secs] [Times: user=0.06 sys=0.00, real=0.00 secs] 
+0.346: [GC 0.346: [ParNew: 62652K->999K(98304K), 0.0030507 secs] 62652K->999K(491520K), 0.0031118 secs] [Times: user=0.05 sys=0.02, real=0.00 secs] 
+0.360: [GC 0.360: [ParNew: 63073K->1020K(98304K), 0.0045439 secs] 63073K->1020K(491520K), 0.0046042 secs] [Times: user=0.05 sys=0.00, real=0.00 secs] 
+0.373: [GC 0.373: [ParNew: 62588K->1025K(98304K), 0.0039508 secs] 62588K->1025K(491520K), 0.0040171 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+0.432: [GC 0.432: [ParNew: 62550K->1027K(98304K), 0.0038388 secs] 144470K->82947K(491520K), 0.0038931 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+0.436: [GC [1 CMS-initial-mark: 81920K(393216K)] 87043K(491520K), 0.0006483 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+0.437: [CMS-concurrent-mark-start]
+0.452: [GC 0.452: [ParNew: 62577K->1027K(98304K), 0.0035159 secs] 144497K->82947K(491520K), 0.0035706 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+0.461: [CMS-concurrent-mark: 0.020/0.024 secs] [Times: user=0.05 sys=0.02, real=0.02 secs] 
+0.461: [CMS-concurrent-preclean-start]
+0.462: [CMS-concurrent-preclean: 0.001/0.001 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+0.462: [CMS-concurrent-abortable-preclean-start]
+0.465: [GC 0.465: [ParNew: 62541K->1027K(98304K), 0.0029296 secs] 144461K->82947K(491520K), 0.0029711 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+0.477: [GC 0.477: [ParNew: 62830K->1027K(98304K), 0.0029403 secs] 144750K->82947K(491520K), 0.0029839 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+0.480: [CMS-concurrent-abortable-preclean: 0.011/0.018 secs] [Times: user=0.03 sys=0.00, real=0.02 secs] 
+0.481: [GC[YG occupancy: 5123 K (98304 K)]0.481: [Rescan (parallel) , 0.0012978 secs]0.482: [weak refs processing, 0.0000056 secs]0.482: [scrub string table, 0.0000582 secs] [1 CMS-remark: 81920K(393216K)] 87043K(491520K), 0.0014650 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+0.482: [CMS-concurrent-sweep-start]
+0.482: [CMS-concurrent-sweep: 0.000/0.000 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+0.482: [CMS-concurrent-reset-start]
+0.485: [CMS-concurrent-reset: 0.003/0.003 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+中间省略
+1.187: [GC 1.187: [ParNew: 41003K->4096K(98304K), 0.0033611 secs]1.191: [CMS1.191: [CMS-concurrent-abortable-preclean: 0.006/0.053 secs] [Times: user=0.12 sys=0.00, real=0.05 secs] 
+ (concurrent mode failure) (concurrent mode failure)[YG occupancy: 4096 K (98304 K)]1.191: [Rescan (parallel) , 0.0004875 secs]1.191: [weak refs processing, 0.0000038 secs]1.191: [scrub string table, 0.0000466 secs]: 328370K->690K(393216K), 0.0033748 secs] 369374K->4786K(491520K), [CMS Perm : 2526K->2526K(65536K)], 0.0068582 secs] [Times: user=0.06 sys=0.00, real=0.01 secs] 
+1.208: [GC 1.208: [ParNew: 65605K->0K(98304K), 0.0036942 secs] 148215K->82610K(491520K), 0.0037520 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.212: [GC [1 CMS-initial-mark: 82610K(393216K)] 86706K(491520K), 0.0000757 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.213: [CMS-concurrent-mark-start]
+1.221: [GC 1.221: [ParNew: 61504K->0K(98304K), 0.0037417 secs] 144115K->82610K(491520K), 0.0037896 secs] [Times: user=0.03 sys=0.00, real=0.00 secs] 
+1.232: [CMS-concurrent-mark: 0.015/0.019 secs] [Times: user=0.03 sys=0.00, real=0.02 secs] 
+1.232: [CMS-concurrent-preclean-start]
+1.233: [CMS-concurrent-preclean: 0.001/0.001 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.233: [CMS-concurrent-abortable-preclean-start]
+1.235: [GC 1.235: [ParNew: 61504K->0K(98304K), 0.0024883 secs] 144115K->82610K(491520K), 0.0025358 secs] [Times: user=0.06 sys=0.00, real=0.00 secs] 
+1.246: [GC 1.246: [ParNew: 61504K->0K(98304K), 0.0019179 secs] 144115K->82610K(491520K), 0.0019619 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.257: [GC 1.257: [ParNew: 61504K->0K(98304K), 0.0019337 secs] 144115K->82610K(491520K), 0.0019807 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.267: [GC 1.267: [ParNew: 61504K->0K(98304K), 0.0029792 secs] 144115K->82610K(491520K), 0.0030211 secs] [Times: user=0.05 sys=0.00, real=0.00 secs] 
+1.286: [GC 1.286: [ParNew: 61509K->0K(98304K), 0.0017768 secs] 226039K->164530K(491520K), 0.0018204 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.297: [GC 1.297: [ParNew: 61504K->0K(98304K), 0.0041082 secs] 226035K->164530K(491520K), 0.0041561 secs] [Times: user=0.03 sys=0.00, real=0.00 secs] 
+1.311: [GC 1.311: [ParNew: 61504K->0K(98304K), 0.0034766 secs] 226035K->164530K(491520K), 0.0035283 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.322: [GC 1.322: [ParNew: 61504K->0K(98304K), 0.0026329 secs] 226035K->164530K(491520K), 0.0027009 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.334: [GC 1.334: [ParNew: 61504K->0K(98304K), 0.0023160 secs] 226035K->164530K(491520K), 0.0023660 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.344: [GC 1.344: [ParNew: 61504K->0K(98304K), 0.0019123 secs] 226035K->164530K(491520K), 0.0019568 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.354: [GC 1.354: [ParNew: 61504K->0K(98304K), 0.0016707 secs] 226035K->164530K(491520K), 0.0017122 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+1.358: [Full GC (System) 1.358: [CMS1.358: [CMS-concurrent-abortable-preclean: 0.016/0.125 secs] [Times: user=0.25 sys=0.00, real=0.13 secs] 
+ (concurrent mode interrupted): 164530K->686K(393216K), 0.0098896 secs] 180933K->686K(491520K), [CMS Perm : 2526K->2523K(65536K)], 0.0099431 secs] [Times: user=0.01 sys=0.00, real=0.01 secs] 
+Heap
+ par new generation   total 98304K, used 1310K [0x04a60000, 0x0ca60000, 0x0ca60000)
+  eden space 65536K,   2% used [0x04a60000, 0x04ba7b48, 0x08a60000)
+  from space 32768K,   0% used [0x0aa60000, 0x0aa60000, 0x0ca60000)
+  to   space 32768K,   0% used [0x08a60000, 0x08a60000, 0x0aa60000)
+ concurrent mark-sweep generation total 393216K, used 686K [0x0ca60000, 0x24a60000, 0x24a60000)
+ concurrent-mark-sweep perm gen total 65536K, used 2528K [0x24a60000, 0x28a60000, 0x28a60000)
+------------------------------------------------------------------------ 
+如何读GC的日志呢，其实有规律的，一般可以按下面理解
+  ParNew：全称 Parallel New 指年轻代的并行回收结果。范式： “年轻代GC前->年轻代GC后（年轻代总空间），花费时间m.n秒。”
+  CMS：全称 Concurent Mark Sweep 指年老代，持久代的并发回收处理。
+       主要有几个生命周期，如CMS-initial-mark，CMS-concurrent-mark-start,CMS-concurrent-mark，CMS-concurrent-preclean-start,
+	                         CMS-concurrent-preclean，CMS-concurrent-abortable-preclean-start,CMS-concurrent-abortable-preclean,CMS-remark
+	   这几个没有使用略称还是比较容易理解它们的动作的。其中第一个和最后一个会stopWorld，需要主要它们的花费时间。
+  GC/FullGC：涵盖年轻代/年老代/持久代回收结果，以及耗费的时间。
+  Heap：堆的详细信息
+	    par new generation   新生代信息
+  	    eden space           Eden区域
+  	    from space           Survivor的第1个区域
+  	    to   space           Survivor的第2个区域
+ 	    concurrent mark-sweep 年老代信息
+ 	    concurrent-mark-sweep 持久代信息
+        最后对Survivor的两个区域补充一下说明：
+		          当Eden第一次满了之后，会把Eden活着的对象copy到from区域，然后清空Eden区域。
+                  当Eden第二次满了之后，会把Eden活着的对象+from区域的对象，一起copy到to区域，然后清空Eden区域。copy的过程中会保证对象的使用内存是连续的。
+                  当Eden第N次满了之后，会来回的对from和to的Survivor区域进行乾坤大挪移。部分对象命比较长，copy到一定次数还没死，就会被挪移到老生代的Tenuring区中。				  
+		          
