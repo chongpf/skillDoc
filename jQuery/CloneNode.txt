@@ -1,0 +1,14 @@
+/**
+Old:  <div id="parent"><p id="child"></p></div>
+
+New:<div id="parent"><p id="child"></p></div>
+        <div id="parent2"><p id="child2"></p></div>
+*/
+$(function ()
+ {
+  var clonenode = $("#parent").clone();
+  clonenode.children("#child").attr("id", "child2");
+  clonenode.attr("id", "parent2");
+  $("#parent").after(clonenode);
+  alert(document.documentelement.innerhtml);
+ })

@@ -1,0 +1,8 @@
+问题：Unable to load dynamic library 'C:\Program Files (x86)\PHP\ext\php_oci8_11g.dll' - %1 is not a valid Win32 application.
+解决：step1：oracle官网下载instantClient。解压后copy oci.dll文件，粘贴到sysWOW64下（64位系统）。
+      step2: 取php官网下载php_oci8-2.0.12-5.6-ts-vc11-x86.zip，把php_oci8.dll放置到PHP安装目录的ext目录下。
+	  step3: 打开php.ini, 把;extension=php_oci8.dll前的；去掉。即：改为extension=php_oci8.dll
+	  step4: 启动apache，可以发现error.log下面的Unable to load dynamic library xxx错误信息消失。
+心得，根据DB的版本64/32，选择instantClient的版本，并把oci.dll放置到sysWOW64/sys32下。
+      根据DB的版本，选择正确的php_oci8版本,放置到php的ext下。
+	  修改php.ini，把extension=php_oci8.dll设置为可行。

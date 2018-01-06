@@ -1,0 +1,33 @@
+create table tb_employees  
+(  
+employee_id number,  
+employee_name varchar2(50),  
+employee_age number,  
+employee_birth date,  
+department_id number  
+);  
+--单列主键  
+alter table tb_employees add constraint tb_employees_pk primary key (employee_id);  
+
+create table tb_departments  
+(  
+department_id number,  
+department_name varchar2(100),  
+location varchar2(300)  
+);  
+
+--联合主键  
+alter table tb_departments add constraint tb_departments_pk primary key (department_id,department_name);  
+
+-- 删除主键
+ALTER TABLE table_name DROP CONSTRAINT constraint_name;  
+
+--主键
+column_name data_type [constraint constraint_name]
+primary key
+或
+create table table_name(
+column_name data_type,[...,]
+[constraint constraint_name] primary key(column_name)
+[,...]
+)

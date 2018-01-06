@@ -1,0 +1,29 @@
+--创建索引
+CREATE [UNIQUE] | [BITMAP] INDEX index_name  --unique表示唯一索引
+ON table_name([column1 [ASC|DESC],column2    --bitmap，创建位图索引
+[ASC|DESC],…] | [express])
+[TABLESPACE tablespace_name]
+[PCTFREE n1]                                 --指定索引在数据块中空闲空间
+[STORAGE (INITIAL n2)]
+[NOLOGGING]                                  --表示创建和重建索引时允许对表做DML操作，默认情况下不应该使用
+[NOLINE]
+[NOSORT];                                    --表示创建索引时不进行排序，默认不适用，如果数据已经是按照该索引顺序排列的可以使用
+
+--索引重命名
+alter index index_sno rename to bitmap_index;
+
+--合并索引
+alter index index_sno coalesce;
+
+--重建索引
+alter index index_sno rebuild;
+
+--删除索引
+drop index index_sno;
+
+--查看索引
+select index_name,index-type, tablespace_name, uniqueness from all_indexes where table_name ='tablename';
+
+ -- eg:    
+create index index_sno on student('name');
+select * from all_indexes where table_name='student';

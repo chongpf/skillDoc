@@ -1,0 +1,1 @@
+  window.opener.document.all.testInput.value = value;

@@ -1,0 +1,43 @@
+---------START ORACLE-------------
+1) startListen          lsnrctl start
+    openSqlPlus      sqlplus /nolog
+    doConn             conn sys/sys@myoracle as sysdba 
+    startInstance     startup
+
+2) startListen          lsnrctl start
+    LoginAsSysdba  sqlplus /  as sysdba 
+    startInstance     startup;
+----------STOP ORACLE---------------
+                             shutdown immediate;
+                             exit;
+
+ CREATE TEMPORARY TABLESPACE TTSNSK_TEMP_SPACE
+         TEMPFILE '/data/oracle/oradata/myoracle/TTSNSK_TEMP_SPACE.dbf'
+         SIZE 32M
+         AUTOEXTEND ON
+         NEXT 32M MAXSIZE UNLIMITED
+         EXTENT MANAGEMENT LOCAL;
+
+CREATE TABLESPACE TTSNSK_DATA_SPACE
+         LOGGING
+         DATAFILE '/data/oracle/oradata/myoracle/TTSNSK_DATA_SPACE.dbf'
+         SIZE 32M
+         AUTOEXTEND ON
+         NEXT 32M MAXSIZE UNLIMITED
+         EXTENT MANAGEMENT LOCAL;
+		 
+CREATE USER ttsnsk IDENTIFIED BY ttsnsk
+         ACCOUNT UNLOCK
+         DEFAULT TABLESPACE TTSNSK_DATA_SPACE
+         TEMPORARY TABLESPACE TTSNSK_TEMP_SPACE;
+		 
+GRANT CONNECT,RESOURCE TO ttsnsk;
+GRANT DBA TO ttsnsk;
+
+CREATE USER ttsuser IDENTIFIED BY ttsuser
+         ACCOUNT UNLOCK
+         DEFAULT TABLESPACE TTSNSK_DATA_SPACE
+         TEMPORARY TABLESPACE TTSNSK_TEMP_SPACE;
+		 
+GRANT CONNECT,RESOURCE TO ttsuser;
+GRANT DBA TO ttsuser;

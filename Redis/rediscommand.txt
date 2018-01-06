@@ -1,0 +1,193 @@
+1.学习Redis之前呢，首先需要安装redis。
+  这里使用的环境：VMware12，CentOS7
+  安装对象：redis4.0.2
+
+1.1 访问redis.io网站查询目前最新的redis发布包，并copy资源地址（http://download.redis.io/releases/redis-4.0.2.tar.gz）。
+
+1.2开始安装流程
+     1.2.1 centos上切换到root用户。
+     1.2.2 创建redis的下载目录："mkdir /home/downloads/"。然后跳转进来"cd  /home/downloads/"
+     1.2.3 下载资源："wget http://download.redis.io/releases/redis-4.0.2.tar.gz"
+     1.2.4 解压资源："tar -zxvf http://download.redis.io/releases/redis-4.0.2.tar.gz",解压后会发现多出了redis-4.0.2目录。
+                               跳转进来"cd redis-4.0.2/"，继续跳转进入src目录"cd src/"
+     1.2.5 编译"make"。等待编译结束。通过"ls"命令，发现生成编译后的可执行文件，颜色为墨绿色。
+     1.2.6 安装"make install"   
+     1.2.7 把必要文件copy到常用的目录下,以后执行程序时访问usr目录进行作业。
+              copy redis.conf文件："cp /home/downloads/redis-4.0.2/redis.conf  /usr/local/redis/etc/" 
+              copy 当前目录下执行文件："cp redis-check-aof redis-cli redis-server redis-benchmark redis-check-rdb redis-sentinel redis-trib.rb /usr/local/redis/bin/ "
+    1.2.8 编辑redis.conf文件："vim /usr/local/redis/etc/redis.conf"
+             设置redis的登录密码,增加如下内容(本例设置为password)："requirepass password"
+             设置为后台启动,修改daemonize参数："daemonize yes"
+1.3启动redis-server并通过客户端redis-cli登录。
+   1.3.1启动redis-server
+          跳转到执行命令文件目录："cd /usr/local/redis/bin/"
+          执行启动命令(配置文件设置为启动参数)："./redis-server ../etc/redis.conf" 
+          确认进程存在："pstree -p | grep redis"
+          确认默认端口(redis默认端口6379)："netstat -tunpl | grep 6379"
+  1.3.2通过客户端redis-cli登录 
+          执行客户端命令，附带登录密码："./redis-cli -a password"
+ 
+  到这里，安装，服务器启动和客户端登录都已经完成。
+
+2.redis是什么，有什么作用。
+  权威解释：redis是开源的使用ANSI C编写，支持网络，可基于亦内存亦持久化的日志型，key-value数据库。并支持多语言API。
+  自我总结：开源，单线程，日常操作时在缓存中处理，实现高效快速的数据访问和操作，并基于持久化规则进行持久化。
+                   和关系型数据库协作工作时，定位于数据库的缓存层，有效的降低mysql服务器的压力。
+                   也有项目直接把redis作为最终的持久化数据库使用。redis本身支持多种对象存储类型，使用起来灵活方便。并支持master-slave备份。
+                   使用时需要考虑项目特点，分析出热点数据进行redis缓存，不要滥用redids缓存。
+
+3.redis支持的数据类型有String，Hash，List，Set，Zset（SortedSet）。
+支持：string:   set/get,mset/mget,
+          hash:     hset/hget,hmset/hmget,hgetall,
+          list:        lpush/lpop,rpush/rpop,lrange,lindex,llen,ltrim,blpop/brpop,rpoplpush,bpoplpush,
+          set:        sadd,smembers,sismember,srem,scard,
+          zset:      zadd,zrange,zrangebyscore,zscore,zrangebylex,zremrangebyscore,
+                       zrevrange,zinter,zinterstore,zunion,zunionstore,zdiff,zdiffsotre
+          其他命令：
+          phadd,pfcount,
+          setbit,getbit,bitcount,bitop
+          keys,type,randomkey等常用命令。
+4.在redis上把下面命令全部执行一遍，认识会比较直观，光看命令与结果的说明，印象不深刻。
+所以这里不列举各个命令执行的结果。
+关于set的交集、并集、差集的处理也比较有意思，可以多尝试理解。
+另外，bit操作的部分也需要花费一些时间进行深入理解，需要认清bit的每一位就是一个id，其中0和1代表该id的两个状态。
+比如：id为0,1,2,3,4,5,6的七位用户，今天登陆了app，那么就可以在bit里记述为11111110，其中每个字节8位，第8位没有用时默认为0.
+          当需要记录的id比较多时，redis会不断扩大内存，每多一个字节（8bits），就可以多放8个id的信息。
+          对多个存放bit数据的key，可以进行bitop操作，有 and与、or或、xor异或、以及not取反的选项处理。
+
+#String 
+set key value
+get key
+mset key1 value1 key2 value2
+mget key1 key2
+set key value ex 10
+expire key 10
+keys *
+del key
+del key1 key2
+set key 1
+incr key
+incrby key 10
+
+#List(linked list)
+lpush mylist 1 2 3 4 5
+lpop mylist
+rpush mylist 6 7 8 9 10
+rpop mylist
+lrange mylist 0 -1
+ltrim mylist 0 -2
+lpush mylist 1 1 1 1 1
+lrem mylist 3 1
+llen mylist
+
+blpop mylist 10
+brpop mylist 10
+blpop nolist 10
+brpop nolist 10
+
+rpoplpush mylist nolist
+rpop nolist
+brpoplpush nolist mylist 10
+
+#Hash
+hset myhash f1 1
+hget myhash f1
+hmset myhash f1 1 f2 2 f3 3 f4 4 f5 5
+hmget myhash f1 f2 f3 f4 f5
+hgetall myhash
+hdel myhash f4 f5
+hgetall myhash
+hincrby myhash f1 10
+
+#Set
+sadd jp wang li sun wu 
+sadd en wang li zhang zhao
+sadd fr wang li fang xu
+smembers jp
+sismember jp wang
+sinter jp en fr
+sinterstore intersectionOfJpEnFr jp en fr
+smembers intersecionOfJpEnFr
+sunion jp en fr
+sunionstore unionOfJpEnFr jp en fr
+smembers unionOfJpEnFr
+sdiff jp en fr
+sdiffstore diffenceOfJpToEnFr jp en fr
+smembers diffenceOfJpToEnFr
+smove jp sun
+smembers jp
+
+sadd testset 1 2 3 4 5 6
+srem testset 5 6
+smembers testset
+spop testset 2
+smembers testset
+del testset
+sadd testset 1 2 3 4
+srandmember testset 2
+smembers testset 
+
+#ZSET
+zadd zset1 10 wang 20 li 30 sun 40 xu 90 michael 100 sofia
+zrange zset1 0 -1
+zrangebyscore zset1 50 100
+zscore zset1 michael
+zadd zset2 0 a 0 apple 0 b 0 banana 0 w 0 watermallon
+zrangebylex zset2 [a [b
+zremrangebylex zset2 [a [b
+zremrangebyscore zset2 0 100
+zrange zset2 0 -1
+
+#pf
+pfadd key  1 2 3 4 1 2 5
+pfcount key
+
+#bit
+#10/19 uid(from 1 to 15) login this websit
+setbit stat1019 1 1
+#(repeat excute setbit)
+setbit stat1019 15 1
+
+#10/20 uid(1,2,3,4,5,7,9) login this websit
+setbit stat1020 1 1
+#repeat
+setbit stat1020 9 1
+
+#10/21 uid(1,2,3,4,5,6,8,10) login this websit
+setbit stat1021 1 1
+#repeat
+setbit stat1021 10 1
+
+bitcount stat1019
+bitcount stat1020
+bitcount stat1021
+
+#bitop and
+bitop and statand stat1019 stat1020 stat1021
+bitcount statand
+gitbit statand 1
+gitbit statand 15
+
+#bitop or
+bitop or stator stat1019 stat1020 stat1021
+bitcount stator
+gitbit stator 1
+gitbit stator 15
+
+#bitop not
+#each byte has 8bits,for example setbit key 6 1,key will be 00000010
+#not:it will be 11111101
+bitop not statnot stat1019
+bitcount statnot
+bitget statnot 0
+bitget statnot 1
+bitget statnot 15
+
+#bitop xor
+#xor:for example xor A("00001111") B("11110011") C("00110011")
+#firstly xor A and B => A1("11111100")
+#secondly xor A1 and C =>A2("11001111")
+bitop xor statxor stat1019 stat1020 stat1021
+bitcount statxor
+getbit statxor 1
+getbit statxor 15
